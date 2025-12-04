@@ -17,7 +17,6 @@ import java.util.*;
 
 @Service
 public class PhotoOrganizerService {
-
     private static final DateTimeFormatter EXIF_FMT = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
