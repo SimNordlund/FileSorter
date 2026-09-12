@@ -12,11 +12,14 @@ import java.util.*;
 public class PhotoController {
     private final PhotoOrganizerService organizer;
     private final ExifToolService exifTool;
+    private final FfprobeService ffprobe;
     private final LocalAccessFilter access;
 
-    public PhotoController(PhotoOrganizerService organizer, ExifToolService exifTool, LocalAccessFilter access) {
+    public PhotoController(PhotoOrganizerService organizer, ExifToolService exifTool, FfprobeService ffprobe,
+                           LocalAccessFilter access) {
         this.organizer = organizer;
         this.exifTool = exifTool;
+        this.ffprobe = ffprobe;
         this.access = access;
     }
 
@@ -25,7 +28,8 @@ public class PhotoController {
         List<String> roots = new ArrayList<>();
         FileSystems.getDefault().getRootDirectories().forEach(root -> roots.add(root.toString()));
         return Map.of("token", access.token(), "home", System.getProperty("user.home"), "roots", roots,
-                "exifToolAvailable", exifTool.available(), "unhandledFolder", PhotoOrganizerService.UNHANDLED_FOLDER);
+                "exifToolAvailable", exifTool.available(), "ffprobeAvailable", ffprobe.available(),
+                "unhandledFolder", PhotoOrganizerService.UNHANDLED_FOLDER);
     }
 
     public record Folder(String name, String path) { }

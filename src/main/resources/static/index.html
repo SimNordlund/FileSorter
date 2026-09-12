@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b58">
+  <title>File Sorter · A place for every memory</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="File Sorter home"><span class="brand-icon" aria-hidden="true">▧</span> File Sorter</a>
+    <span class="local-badge"><span aria-hidden="true"></span> On your computer. In your control.</span>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">LESS SEARCHING, MORE MEMORIES</p>
+      <h1>Photos and videos.<br><span>Beautifully in order.</span></h1>
+      <p class="lead">Choose a folder. Give every photo and video a home by year and month.</p>
+    </section>
+
+    <div id="error-banner" class="notice error" role="alert" hidden></div>
+    <div class="workspace">
+      <section class="card setup" aria-labelledby="setup-heading">
+        <div class="section-heading"><span class="step">01</span><h2 id="setup-heading">Choose your collection</h2></div>
+        <form id="sort-form">
+          <fieldset id="settings" disabled>
+            <label for="source">Folder to organize</label>
+            <div class="input-action">
+              <input id="source" name="source" type="text" placeholder="Select a folder or paste its full path" autocomplete="off" required aria-describedby="source-help">
+              <button id="browse-source" class="button secondary" type="button">Browse…</button>
+            </div>
+            <p id="source-help" class="help">Choose a folder of photos and videos from your phone, PC, or saved app exports. Your files stay local.</p>
+            <label class="check"><input id="recursive" type="checkbox" checked><span>Include all subfolders</span></label>
+
+            <div class="field-label" id="mode-label">How should we organize them?</div>
+            <div class="mode-options" role="group" aria-labelledby="mode-label">
+              <label class="mode-card"><input type="radio" name="mode" value="COPY" checked><span><strong>Copy photos &amp; videos <small>DEFAULT</small></strong><span>Keep the originals where they are.</span></span></label>
+              <label class="mode-card"><input type="radio" name="mode" value="MOVE"><span><strong>Move photos &amp; videos</strong><span>Remove originals after a verified copy.</span></span></label>
+            </div>
+            <label id="move-acknowledgement" class="check move-notice" hidden><input id="acknowledge-move" type="checkbox"><span>I understand that moving removes the original files after copying them.</span></label>
+
+            <details class="options">
+              <summary>Output folder &amp; date options</summary>
+              <label for="output">Save organized files to <span class="optional">(optional)</span></label>
+              <div class="input-action">
+                <input id="output" type="text" placeholder="Default: SortedPictures inside your source folder" autocomplete="off">
+                <button id="browse-output" class="button secondary" type="button">Browse…</button>
+              </div>
+              <p class="help">You can paste a new folder path. It will be created when sorting begins.</p>
+              <label class="check"><input id="file-dates" type="checkbox"><span>Use filesystem dates when no other date is found</span></label>
+              <p class="help">Uses last-modified time, then creation time. These may reflect a download or edit instead of when the photo or video was captured. Leave off to send undated files to EjHanteradeBilder.</p>
+            </details>
+            <div class="actions">
+              <button id="preview" class="button secondary" type="button">Preview first</button>
+              <button id="organize" class="button primary" type="button">Copy &amp; organize <span aria-hidden="true">→</span></button>
+            </div>
+            <p class="help action-help">A preview reads files without creating folders or changing anything.</p>
+          </fieldset>
+        </form>
+      </section>
+
+      <aside class="card explanation" aria-labelledby="output-heading">
+        <p class="eyebrow">A LITTLE ORDER GOES A LONG WAY</p>
+        <h2 id="output-heading">One folder. Every month.</h2>
+        <div class="folder-tree" aria-label="Example output structure">
+          <div class="tree-root"><span class="folder-icon" aria-hidden="true"></span> SortedPictures</div>
+          <div class="tree-children">
+            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-09</strong><small>September memories</small></div>
+            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-08</strong><small>August memories</small></div>
+            <div class="unhandled"><span class="folder-icon" aria-hidden="true"></span><strong>EjHanteradeBilder</strong><small>Undated or unsupported files</small></div>
+          </div>
+        </div>
+        <p class="explain-text">Capture dates come first, followed by dates in filenames. Original filenames and photo/video quality are preserved.</p>
+        <div class="format-list"><span>JPEG / PNG</span><span>HEIC / HEIF</span><span>RAW</span><span>MOV / MP4</span><span>MKV / WebM / AVI</span><span>MPG / WMV / MTS</span><span>and more</span></div>
+        <p class="help">Includes saved Samsung/Android, iPhone, PC, Snapchat and Instagram videos. Undated or unsupported videos go to EjHanteradeBilder, alongside unhandled photos.</p>
+        <p id="metadata-status" class="metadata-status">Connecting to the local sorter…</p>
+        <p class="help">Date support depends on the metadata inside each file. Other files in the selected folder also go to EjHanteradeBilder.</p>
+      </aside>
+    </div>
+
+    <section id="results" class="card results" aria-labelledby="results-heading" hidden>
+      <div class="results-header">
+        <div><p id="job-kind" class="eyebrow">YOUR COLLECTION</p><h2 id="results-heading" role="status">Getting started…</h2></div>
+        <button id="cancel" class="button secondary" type="button">Cancel</button>
+      </div>
+      <p id="job-description" class="help"></p>
+      <div id="activity" class="activity" aria-hidden="true"><span></span></div>
+      <p id="current-file" class="current-file"></p>
+      <div class="stats">
+        <div><strong id="processed">0</strong><span>Files processed</span></div>
+        <div><strong id="dated">0</strong><span id="dated-label">Dated files</span></div>
+        <div><strong id="unhandled">0</strong><span>EjHanteradeBilder</span></div>
+        <div><strong id="already-present">0</strong><span>Existing / duplicate</span></div>
+        <div><strong id="errors">0</strong><span>Errors</span></div>
+      </div>
+      <p id="completion-note" class="notice" hidden></p>
+      <p id="output-path" class="path-line"></p>
+      <p id="report-path" class="path-line" hidden></p>
+      <p id="date-sources" class="help"></p>
+      <div id="warnings" class="notice" hidden></div>
+      <div id="job-errors" class="notice error" hidden></div>
+      <div id="group-list" class="group-list" aria-label="Destination folder counts"></div>
+      <details class="file-details"><summary>Recent file details <span class="optional">(up to 80 files)</span></summary>
+        <div class="table-scroll"><table><thead><tr><th>Original file</th><th>Destination</th><th>Date from</th><th>Result</th></tr></thead><tbody id="file-list"></tbody></table></div>
+      </details>
+    </section>
+    <footer>No uploads. No account. Your photos and videos, organized.</footer>
+  </main>
+
+  <dialog id="folder-dialog" aria-labelledby="folder-title">
+    <div class="dialog-header"><h2 id="folder-title">Choose a folder</h2><button id="close-folder" class="icon-button" type="button" aria-label="Close folder browser">×</button></div>
+    <div id="folder-shortcuts" class="shortcuts"></div>
+    <label for="folder-path">Folder path</label>
+    <div class="input-action"><input id="folder-path" type="text" autocomplete="off"><button id="folder-go" class="button secondary" type="button">Go</button></div>
+    <div class="folder-toolbar"><button id="folder-up" class="button secondary" type="button">↑ Parent</button><input id="folder-filter" type="search" aria-label="Filter subfolders" placeholder="Filter subfolders…"></div>
+    <p id="folder-error" class="notice error" role="alert" hidden></p>
+    <p id="folder-note" class="help" role="status"></p>
+    <div id="folder-list" class="folder-list"></div>
+    <div class="dialog-footer"><button id="cancel-folder" class="button secondary" type="button">Cancel</button><button id="use-folder" class="button primary" type="button">Use this folder</button></div>
+  </dialog>
+</body>
+</html>

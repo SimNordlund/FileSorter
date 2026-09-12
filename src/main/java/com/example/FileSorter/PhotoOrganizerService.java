@@ -20,6 +20,7 @@ public class PhotoOrganizerService {
     public static final String UNHANDLED_FOLDER = "EjHanteradeBilder";
     private final PhotoDateResolver dateResolver;
     private final ExifToolService exifTool;
+    private final FfprobeService ffprobe;
     private final ExecutorService worker = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "photo-organizer");
         thread.setDaemon(false);
@@ -27,9 +28,10 @@ public class PhotoOrganizerService {
     });
     private volatile Job current;
 
-    public PhotoOrganizerService(PhotoDateResolver dateResolver, ExifToolService exifTool) {
+    public PhotoOrganizerService(PhotoDateResolver dateResolver, ExifToolService exifTool, FfprobeService ffprobe) {
         this.dateResolver = dateResolver;
         this.exifTool = exifTool;
+        this.ffprobe = ffprobe;
     }
 
     public synchronized Snapshot start(OrganizeRequest request) throws IOException {
@@ -84,7 +86,8 @@ public class PhotoOrganizerService {
     }
 
     private void run(Job job) {
-        try (ExifToolService.Session metadata = exifTool.openSession()) {
+        try (ExifToolService.Session metadata = exifTool.openSession();
+             FfprobeService.Session videoMetadata = ffprobe.openSession(() -> job.cancelled)) {
             checkCancelled(job);
             if (!job.request.isPreview()) {
                 ensureDirectory(job.output);
@@ -93,12 +96,13 @@ public class PhotoOrganizerService {
                 try (BufferedWriter writer = Files.newBufferedWriter(report, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
                     writer.write('\uFEFF');
                     writer.write("source,destination,result,date,date_source,reason\r\n");
-                    walk(job, metadata, writer);
+                    walk(job, metadata, videoMetadata, writer);
                 }
             } else {
-                walk(job, metadata, null);
+                walk(job, metadata, videoMetadata, null);
             }
             if (metadata.failure() != null) job.warning(metadata.failure());
+            if (videoMetadata.failure() != null) job.warning(videoMetadata.failure());
             job.finish(job.cancelled ? "CANCELLED" : job.errorCount() > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED");
         } catch (CancellationException exception) {
             job.finish("CANCELLED");
@@ -108,7 +112,8 @@ public class PhotoOrganizerService {
         }
     }
 
-    private void walk(Job job, ExifToolService.Session metadata, BufferedWriter report) throws IOException {
+    private void walk(Job job, ExifToolService.Session metadata, FfprobeService.Session videoMetadata,
+                      BufferedWriter report) throws IOException {
         // A streaming walk avoids loading a large collection or its image contents into memory.
         Files.walkFileTree(job.source, EnumSet.noneOf(FileVisitOption.class), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
             @Override
@@ -139,7 +144,7 @@ public class PhotoOrganizerService {
                 String detail;
                 try {
                     verifySource(file, attributes);
-                    date = dateResolver.resolve(file, attributes, job.request.allowFileDates(), metadata);
+                    date = dateResolver.resolve(file, attributes, job.request.allowFileDates(), metadata, videoMetadata);
                     checkCancelled(job);
                     String group = date.handled() ? YearMonth.from(date.date()).toString() : UNHANDLED_FOLDER;
                     Path folder = job.output.resolve(group);
