@@ -59,9 +59,9 @@ public class PhotoDateResolver {
         String extension = dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
         boolean video = VIDEO_EXTENSIONS.contains(extension);
         if (!PHOTO_EXTENSIONS.contains(extension) && !video) {
-            return new Result(null, "none", "Unsupported file type" + (extension.isEmpty() ? " (no extension)" : ": ." + extension));
+            return new Result(null, "none", "Filtypen saknar stöd" + (extension.isEmpty() ? " (filändelse saknas)" : ": ." + extension));
         }
-        if (attributes.size() == 0) return new Result(null, "none", "Empty file");
+        if (attributes.size() == 0) return new Result(null, "none", "Tom fil");
 
         Result embedded = readBuiltIn(file);
         if (embedded != null) return embedded;
@@ -80,19 +80,19 @@ public class PhotoDateResolver {
             LocalDate date = dateOf(match.group(first), match.group(first + 1), match.group(first + 2));
             if (date != null) dates.add(date);
         }
-        if (dates.size() == 1) return new Result(dates.iterator().next(), "filename", "Date in original filename");
-        if (dates.size() > 1) return new Result(null, "none", "Filename contains conflicting dates");
+        if (dates.size() == 1) return new Result(dates.iterator().next(), "filename", "Datum i originalets filnamn");
+        if (dates.size() > 1) return new Result(null, "none", "Filnamnet innehåller motstridiga datum");
 
         if (useFileDates) {
             // Modification time usually survives copies; Windows creation time usually does not.
             LocalDate modified = fileDate(attributes.lastModifiedTime().toInstant());
-            if (modified != null) return new Result(modified, "file date", "Filesystem last-modified date (optional fallback)");
+            if (modified != null) return new Result(modified, "file date", "Filsystemets datum för senaste ändring (valfri reservkälla)");
             LocalDate created = fileDate(attributes.creationTime().toInstant());
-            if (created != null) return new Result(created, "file date", "Filesystem creation date (optional fallback)");
+            if (created != null) return new Result(created, "file date", "Filsystemets skapandedatum (valfri reservkälla)");
         }
         return new Result(null, "none", video
-                ? "No usable video creation/recording or filename date; exported videos may have no date metadata (optional readers: ExifTool / ffprobe)"
-                : "No usable embedded or filename date; format may require ExifTool");
+                ? "Inget användbart inspelningsdatum, skapandedatum eller datum i filnamnet hittades. Exporterade videor kan sakna datummetadata (valfria läsare: ExifTool / ffprobe)"
+                : "Inget användbart datum i metadata eller filnamn hittades. Formatet kan kräva ExifTool");
     }
 
     private Result readTags(Map<String, String> tags, String reader) {

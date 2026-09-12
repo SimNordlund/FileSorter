@@ -1,100 +1,100 @@
 <!doctype html>
-<html lang="en">
+<html lang="sv">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#176b58">
-  <title>File Sorter · A place for every memory</title>
+  <title>File Sorter · En plats för varje minne</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="File Sorter home"><span class="brand-icon" aria-hidden="true">▧</span> File Sorter</a>
-    <span class="local-badge"><span aria-hidden="true"></span> On your computer. In your control.</span>
+    <a class="brand" href="/" aria-label="File Sorters startsida"><span class="brand-icon" aria-hidden="true">▧</span> File Sorter</a>
+    <span class="local-badge"><span aria-hidden="true"></span> På din dator. Under din kontroll.</span>
   </header>
   <main>
     <section class="intro">
-      <p class="eyebrow">LESS SEARCHING, MORE MEMORIES</p>
-      <h1>Photos and videos.<br><span>Beautifully in order.</span></h1>
-      <p class="lead">Choose a folder. Give every photo and video a home by year and month.</p>
+      <p class="eyebrow">MINDRE LETANDE, FLER MINNEN</p>
+      <h1>Bilder och videor.<br><span>Allt i rätt ordning.</span></h1>
+      <p class="lead">Välj en mapp. Sortera dina bilder och videor efter år och månad.</p>
     </section>
 
     <div id="error-banner" class="notice error" role="alert" hidden></div>
     <div class="workspace">
       <section class="card setup" aria-labelledby="setup-heading">
-        <div class="section-heading"><span class="step">01</span><h2 id="setup-heading">Choose your collection</h2></div>
+        <div class="section-heading"><span class="step">01</span><h2 id="setup-heading">Välj din samling</h2></div>
         <form id="sort-form">
           <fieldset id="settings" disabled>
-            <label for="source">Folder to organize</label>
+            <label for="source">Mapp att sortera</label>
             <div class="input-action">
-              <input id="source" name="source" type="text" placeholder="Select a folder or paste its full path" autocomplete="off" required aria-describedby="source-help">
-              <button id="browse-source" class="button secondary" type="button">Browse…</button>
+              <input id="source" name="source" type="text" placeholder="Välj en mapp eller klistra in hela sökvägen" autocomplete="off" required aria-describedby="source-help">
+              <button id="browse-source" class="button secondary" type="button">Bläddra…</button>
             </div>
-            <p id="source-help" class="help">Choose a folder of photos and videos from your phone, PC, or saved app exports. Your files stay local.</p>
-            <label class="check"><input id="recursive" type="checkbox" checked><span>Include all subfolders</span></label>
+            <p id="source-help" class="help">Välj en mapp med bilder och videor från mobilen, datorn eller sparade appfiler. Filerna stannar på din dator.</p>
+            <label class="check"><input id="recursive" type="checkbox" checked><span>Ta med alla undermappar</span></label>
 
-            <div class="field-label" id="mode-label">How should we organize them?</div>
+            <div class="field-label" id="mode-label">Hur vill du sortera filerna?</div>
             <div class="mode-options" role="group" aria-labelledby="mode-label">
-              <label class="mode-card"><input type="radio" name="mode" value="COPY" checked><span><strong>Copy photos &amp; videos <small>DEFAULT</small></strong><span>Keep the originals where they are.</span></span></label>
-              <label class="mode-card"><input type="radio" name="mode" value="MOVE"><span><strong>Move photos &amp; videos</strong><span>Remove originals after a verified copy.</span></span></label>
+              <label class="mode-card"><input type="radio" name="mode" value="COPY" checked><span><strong>Kopiera bilder och videor <small>STANDARD</small></strong><span>Behåll originalen där de ligger.</span></span></label>
+              <label class="mode-card"><input type="radio" name="mode" value="MOVE"><span><strong>Flytta bilder och videor</strong><span>Ta bort originalen när kopiorna har kontrollerats.</span></span></label>
             </div>
-            <label id="move-acknowledgement" class="check move-notice" hidden><input id="acknowledge-move" type="checkbox"><span>I understand that moving removes the original files after copying them.</span></label>
+            <label id="move-acknowledgement" class="check move-notice" hidden><input id="acknowledge-move" type="checkbox"><span>Jag förstår att originalfilerna tas bort efter kopieringen när jag väljer att flytta dem.</span></label>
 
             <details class="options">
-              <summary>Output folder &amp; date options</summary>
-              <label for="output">Save organized files to <span class="optional">(optional)</span></label>
+              <summary>Målmapp och datuminställningar</summary>
+              <label for="output">Spara de sorterade filerna i <span class="optional">(valfritt)</span></label>
               <div class="input-action">
-                <input id="output" type="text" placeholder="Default: SortedPictures inside your source folder" autocomplete="off">
-                <button id="browse-output" class="button secondary" type="button">Browse…</button>
+                <input id="output" type="text" placeholder="Standard: SortedPictures i den valda mappen" autocomplete="off">
+                <button id="browse-output" class="button secondary" type="button">Bläddra…</button>
               </div>
-              <p class="help">You can paste a new folder path. It will be created when sorting begins.</p>
-              <label class="check"><input id="file-dates" type="checkbox"><span>Use filesystem dates when no other date is found</span></label>
-              <p class="help">Uses last-modified time, then creation time. These may reflect a download or edit instead of when the photo or video was captured. Leave off to send undated files to EjHanteradeBilder.</p>
+              <p class="help">Du kan ange sökvägen till en ny mapp. Den skapas när sorteringen börjar.</p>
+              <label class="check"><input id="file-dates" type="checkbox"><span>Använd filsystemets datum om inget annat datum hittas</span></label>
+              <p class="help">Använder datumet för senaste ändring, därefter skapandedatumet. Dessa kan avse en nedladdning eller redigering i stället för när bilden eller videon togs. Låt alternativet vara avstängt för att lägga odaterade filer i EjHanterade.</p>
             </details>
             <div class="actions">
-              <button id="preview" class="button secondary" type="button">Preview first</button>
-              <button id="organize" class="button primary" type="button">Copy &amp; organize <span aria-hidden="true">→</span></button>
+              <button id="preview" class="button secondary" type="button">Förhandsgranska</button>
+              <button id="organize" class="button primary" type="button">Kopiera och sortera <span aria-hidden="true">→</span></button>
             </div>
-            <p class="help action-help">A preview reads files without creating folders or changing anything.</p>
+            <p class="help action-help">Förhandsgranskningen läser filerna utan att skapa mappar eller ändra något.</p>
           </fieldset>
         </form>
       </section>
 
       <aside class="card explanation" aria-labelledby="output-heading">
-        <p class="eyebrow">A LITTLE ORDER GOES A LONG WAY</p>
-        <h2 id="output-heading">One folder. Every month.</h2>
-        <div class="folder-tree" aria-label="Example output structure">
+        <p class="eyebrow">LITE ORDNING GÖR STOR SKILLNAD</p>
+        <h2 id="output-heading">En mapp för varje månad.</h2>
+        <div class="folder-tree" aria-label="Exempel på sorterade mappar">
           <div class="tree-root"><span class="folder-icon" aria-hidden="true"></span> SortedPictures</div>
           <div class="tree-children">
-            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-09</strong><small>September memories</small></div>
-            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-08</strong><small>August memories</small></div>
-            <div class="unhandled"><span class="folder-icon" aria-hidden="true"></span><strong>EjHanteradeBilder</strong><small>Undated or unsupported files</small></div>
+            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-09</strong><small>Minnen från september</small></div>
+            <div><span class="folder-icon" aria-hidden="true"></span><strong>2026-08</strong><small>Minnen från augusti</small></div>
+            <div class="unhandled"><span class="folder-icon" aria-hidden="true"></span><strong>EjHanterade</strong><small>Odaterade filer och format som saknar stöd</small></div>
           </div>
         </div>
-        <p class="explain-text">Capture dates come first, followed by dates in filenames. Original filenames and photo/video quality are preserved.</p>
-        <div class="format-list"><span>JPEG / PNG</span><span>HEIC / HEIF</span><span>RAW</span><span>MOV / MP4</span><span>MKV / WebM / AVI</span><span>MPG / WMV / MTS</span><span>and more</span></div>
-        <p class="help">Includes saved Samsung/Android, iPhone, PC, Snapchat and Instagram videos. Undated or unsupported videos go to EjHanteradeBilder, alongside unhandled photos.</p>
-        <p id="metadata-status" class="metadata-status">Connecting to the local sorter…</p>
-        <p class="help">Date support depends on the metadata inside each file. Other files in the selected folder also go to EjHanteradeBilder.</p>
+        <p class="explain-text">Datumet då bilden eller videon togs används i första hand, därefter datum i filnamnet. Originalens filnamn och kvalitet bevaras.</p>
+        <div class="format-list"><span>JPEG / PNG</span><span>HEIC / HEIF</span><span>RAW</span><span>MOV / MP4</span><span>MKV / WebM / AVI</span><span>MPG / WMV / MTS</span><span>med flera</span></div>
+        <p class="help">Omfattar sparade videor från Samsung/Android, iPhone, datorer, Snapchat och Instagram. Odaterade videor och videoformat som saknar stöd hamnar i EjHanterade tillsammans med ej hanterade bilder.</p>
+        <p id="metadata-status" class="metadata-status">Ansluter till sorteringsprogrammet…</p>
+        <p class="help">Möjligheten att hitta datum beror på filens metadata. Andra filer i den valda mappen hamnar också i EjHanterade.</p>
       </aside>
     </div>
 
     <section id="results" class="card results" aria-labelledby="results-heading" hidden>
       <div class="results-header">
-        <div><p id="job-kind" class="eyebrow">YOUR COLLECTION</p><h2 id="results-heading" role="status">Getting started…</h2></div>
-        <button id="cancel" class="button secondary" type="button">Cancel</button>
+        <div><p id="job-kind" class="eyebrow">DIN SAMLING</p><h2 id="results-heading" role="status">Startar…</h2></div>
+        <button id="cancel" class="button secondary" type="button">Avbryt</button>
       </div>
       <p id="job-description" class="help"></p>
       <div id="activity" class="activity" aria-hidden="true"><span></span></div>
       <p id="current-file" class="current-file"></p>
       <div class="stats">
-        <div><strong id="processed">0</strong><span>Files processed</span></div>
-        <div><strong id="dated">0</strong><span id="dated-label">Dated files</span></div>
-        <div><strong id="unhandled">0</strong><span>EjHanteradeBilder</span></div>
-        <div><strong id="already-present">0</strong><span>Existing / duplicate</span></div>
-        <div><strong id="errors">0</strong><span>Errors</span></div>
+        <div><strong id="processed">0</strong><span>Bearbetade filer</span></div>
+        <div><strong id="dated">0</strong><span id="dated-label">Daterade filer</span></div>
+        <div><strong id="unhandled">0</strong><span>EjHanterade</span></div>
+        <div><strong id="already-present">0</strong><span>Befintliga / dubbletter</span></div>
+        <div><strong id="errors">0</strong><span>Fel</span></div>
       </div>
       <p id="completion-note" class="notice" hidden></p>
       <p id="output-path" class="path-line"></p>
@@ -102,24 +102,24 @@
       <p id="date-sources" class="help"></p>
       <div id="warnings" class="notice" hidden></div>
       <div id="job-errors" class="notice error" hidden></div>
-      <div id="group-list" class="group-list" aria-label="Destination folder counts"></div>
-      <details class="file-details"><summary>Recent file details <span class="optional">(up to 80 files)</span></summary>
-        <div class="table-scroll"><table><thead><tr><th>Original file</th><th>Destination</th><th>Date from</th><th>Result</th></tr></thead><tbody id="file-list"></tbody></table></div>
+      <div id="group-list" class="group-list" aria-label="Antal filer per målmapp"></div>
+      <details class="file-details"><summary>Senast bearbetade filer <span class="optional">(upp till 80 filer)</span></summary>
+        <div class="table-scroll"><table><thead><tr><th>Originalfil</th><th>Mål</th><th>Datumkälla</th><th>Resultat</th></tr></thead><tbody id="file-list"></tbody></table></div>
       </details>
     </section>
-    <footer>No uploads. No account. Your photos and videos, organized.</footer>
+    <footer>Inga uppladdningar. Inget konto. Dina bilder och videor, sorterade.</footer>
   </main>
 
   <dialog id="folder-dialog" aria-labelledby="folder-title">
-    <div class="dialog-header"><h2 id="folder-title">Choose a folder</h2><button id="close-folder" class="icon-button" type="button" aria-label="Close folder browser">×</button></div>
+    <div class="dialog-header"><h2 id="folder-title">Välj en mapp</h2><button id="close-folder" class="icon-button" type="button" aria-label="Stäng mappväljaren">×</button></div>
     <div id="folder-shortcuts" class="shortcuts"></div>
-    <label for="folder-path">Folder path</label>
-    <div class="input-action"><input id="folder-path" type="text" autocomplete="off"><button id="folder-go" class="button secondary" type="button">Go</button></div>
-    <div class="folder-toolbar"><button id="folder-up" class="button secondary" type="button">↑ Parent</button><input id="folder-filter" type="search" aria-label="Filter subfolders" placeholder="Filter subfolders…"></div>
+    <label for="folder-path">Sökväg till mapp</label>
+    <div class="input-action"><input id="folder-path" type="text" autocomplete="off"><button id="folder-go" class="button secondary" type="button">Öppna</button></div>
+    <div class="folder-toolbar"><button id="folder-up" class="button secondary" type="button">↑ En nivå upp</button><input id="folder-filter" type="search" aria-label="Filtrera undermappar" placeholder="Filtrera undermappar…"></div>
     <p id="folder-error" class="notice error" role="alert" hidden></p>
     <p id="folder-note" class="help" role="status"></p>
     <div id="folder-list" class="folder-list"></div>
-    <div class="dialog-footer"><button id="cancel-folder" class="button secondary" type="button">Cancel</button><button id="use-folder" class="button primary" type="button">Use this folder</button></div>
+    <div class="dialog-footer"><button id="cancel-folder" class="button secondary" type="button">Avbryt</button><button id="use-folder" class="button primary" type="button">Välj denna mapp</button></div>
   </dialog>
 </body>
 </html>

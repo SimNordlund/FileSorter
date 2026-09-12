@@ -10,22 +10,31 @@ let folderLocation;
 let folderParent;
 let folderRequest = 0;
 let filterTimer;
-const number = value => Number(value).toLocaleString();
+const number = value => Number(value).toLocaleString('sv-SE');
 const basename = path => path.split(/[\\/]/).filter(Boolean).pop() || path;
+const dateSourceLabel = source => ({ metadata: 'Metadata', filename: 'Filnamn', 'file date': 'Filsystemets datum', none: 'Saknar datum / saknar stöd' })[source] || 'Okänd datumkälla';
+const resultLabel = result => ({ preview: 'Förhandsgranskning', 'duplicate (preview)': 'Dubblett (förhandsgranskning)', 'already present': 'Finns redan', moved: 'Flyttad', copied: 'Kopierad', error: 'Fel', skipped: 'Överhoppad' })[result] || 'Okänt resultat';
 
 async function api(path, body, retry = true) {
-  const response = await fetch(path, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: { 'X-FileSorter-Token': config?.token || '', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(30000)
-  });
+  let response;
+  try {
+    response = await fetch(path, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: { 'X-FileSorter-Token': config?.token || '', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(30000)
+    });
+  } catch (error) {
+    throw new Error(error.name === 'TimeoutError' || error.name === 'AbortError'
+      ? 'Servern svarade inte i tid. Försök igen.'
+      : 'Det gick inte att ansluta till servern. Kontrollera att programmet körs.');
+  }
   if (response.status === 403 && retry && path !== '/api/config') {
     config = await api('/api/config', undefined, false);
     return api(path, body, false);
   }
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.message || `Request failed (${response.status}). Refresh the page to reconnect.`);
+  if (!response.ok) throw new Error(result.message || `Begäran misslyckades (${response.status}). Ladda om sidan för att ansluta igen.`);
   return result;
 }
 
@@ -37,7 +46,7 @@ function showError(message) {
 function updateMode() {
   const move = document.querySelector('input[name=mode]:checked').value === 'MOVE';
   $('move-acknowledgement').hidden = !move;
-  $('organize').textContent = move ? 'Move & organize →' : 'Copy & organize →';
+  $('organize').textContent = move ? 'Flytta och sortera →' : 'Kopiera och sortera →';
   $('organize').disabled = move && !$('acknowledge-move').checked;
 }
 
@@ -50,7 +59,9 @@ function settings(preview) {
 }
 
 async function start(preview) {
-  if (starting || currentJob?.status === 'RUNNING' || !$('sort-form').reportValidity()) return;
+  if (starting || currentJob?.status === 'RUNNING') return;
+  $('source').setCustomValidity($('source').value.trim() ? '' : 'Välj en mapp eller ange dess fullständiga sökväg.');
+  if (!$('sort-form').reportValidity()) return;
   const request = settings(preview);
   if (!preview && request.mode === 'MOVE' && !$('acknowledge-move').checked) return;
   showError('');
@@ -69,7 +80,7 @@ async function start(preview) {
       if (state.job) { restoreSettings(state.job); render(state.job); schedulePoll(); }
       else $('settings').disabled = false;
     } catch {
-      showError('Connection lost. A job may have started. Reconnecting before allowing another operation…');
+      showError('Anslutningen bröts. En sortering kan ha startat. Ansluter igen innan en ny åtgärd kan påbörjas…');
       schedulePoll();
     }
   } finally {
@@ -87,20 +98,20 @@ async function poll() {
     const state = await api('/api/jobs/current');
     showError('');
     if (!state.job) {
-      if (currentJob?.status === 'RUNNING') showError('The server restarted. The previous job may have partial output. Check its CSV report and preview again.');
+      if (currentJob?.status === 'RUNNING') showError('Servern har startats om. Vissa filer kan redan ha sorterats. Kontrollera CSV-rapporten och förhandsgranska igen.');
       currentJob = null;
       $('settings').disabled = false;
       $('cancel').hidden = true;
       $('activity').hidden = true;
       $('current-file').textContent = '';
-      if (!$('results').hidden) $('results-heading').textContent = 'Job no longer available';
+      if (!$('results').hidden) $('results-heading').textContent = 'Körningen finns inte längre tillgänglig';
       return;
     }
     if (currentJob?.id !== state.job.id) restoreSettings(state.job);
     render(state.job);
     if (state.job.status === 'RUNNING') schedulePoll();
   } catch (error) {
-    showError(`Connection interrupted. The sorter may still be working. Retrying… ${error.message}`);
+    showError(`Anslutningen bröts. Sorteringen kan fortfarande pågå. Försöker igen… ${error.message}`);
     $('settings').disabled = true;
     pollTimer = setTimeout(poll, 3000);
   }
@@ -108,6 +119,7 @@ async function poll() {
 
 function restoreSettings(job) {
   $('source').value = job.sourceDir;
+  $('source').setCustomValidity('');
   $('output').value = job.outputDir;
   document.querySelector(`input[name=mode][value="${job.mode === 'MOVE' ? 'MOVE' : 'COPY'}"]`).checked = true;
   $('recursive').checked = job.recursive;
@@ -133,37 +145,37 @@ function showMessages(id, messages) {
 function render(job) {
   currentJob = job;
   const running = job.status === 'RUNNING';
-  const verb = job.mode === 'MOVE' ? 'Moving' : 'Copying';
+  const verb = job.mode === 'MOVE' ? 'Flyttar' : 'Kopierar';
   $('settings').disabled = running;
   $('results').hidden = false;
   $('cancel').hidden = !running;
   $('cancel').disabled = job.cancelRequested;
-  $('cancel').textContent = job.cancelRequested ? 'Cancelling…' : 'Cancel';
+  $('cancel').textContent = job.cancelRequested ? 'Avbryter…' : 'Avbryt';
   $('activity').hidden = !running;
-  $('job-kind').textContent = job.preview ? 'PREVIEW · NO FILES CHANGED' : `${job.mode} · YOUR COLLECTION`;
-  const titles = { COMPLETED: job.preview ? 'Your preview is ready' : 'Your collection is organized',
-    COMPLETED_WITH_ERRORS: job.preview ? 'Preview finished with errors' : 'Finished with errors',
-    CANCELLED: 'Job cancelled', FAILED: 'The job stopped' };
-  const heading = running ? (job.cancelRequested ? 'Finishing the current operation…' : job.preview ? 'Finding a home for every file…' : `${verb} and organizing…`) : titles[job.status] || job.status;
+  $('job-kind').textContent = job.preview ? 'FÖRHANDSGRANSKNING · INGA FILER ÄNDRADE' : `${job.mode === 'MOVE' ? 'FLYTTNING' : 'KOPIERING'} · DIN SAMLING`;
+  const titles = { COMPLETED: job.preview ? 'Förhandsgranskningen är klar' : 'Din samling är sorterad',
+    COMPLETED_WITH_ERRORS: job.preview ? 'Förhandsgranskningen är klar med fel' : 'Sorteringen är klar med fel',
+    CANCELLED: 'Körningen avbröts', FAILED: 'Körningen stoppades' };
+  const heading = running ? (job.cancelRequested ? 'Avslutar den pågående åtgärden…' : job.preview ? 'Hittar rätt mapp för varje fil…' : `${verb} och sorterar…`) : titles[job.status] || 'Okänd status';
   if ($('results-heading').textContent !== heading) $('results-heading').textContent = heading;
-  $('job-description').textContent = `${job.recursive ? 'Including subfolders' : 'Top-level files only'} · Original filenames preserved · ${job.useFileDates ? 'Filesystem date fallback enabled' : 'Embedded and filename dates only'}`;
-  $('current-file').textContent = job.currentFile ? `Reading / processing: ${job.currentFile}` : '';
+  $('job-description').textContent = `${job.recursive ? 'Undermappar ingår' : 'Endast filer direkt i vald mapp'} · Originalens filnamn bevaras · ${job.useFileDates ? 'Filsystemets datum används vid behov' : 'Endast datum i metadata och filnamn'}`;
+  $('current-file').textContent = job.currentFile ? `Läser / bearbetar: ${job.currentFile}` : '';
   for (const [id, key] of [['processed', 'processed'], ['dated', 'dated'], ['unhandled', 'unhandled'], ['already-present', 'alreadyPresent'], ['errors', 'errors']]) $(id).textContent = number(job[key]);
-  $('dated-label').textContent = job.preview ? 'Would sort by date' : 'Sorted by date';
-  $('output-path').textContent = `Output: ${job.outputDir}`;
+  $('dated-label').textContent = job.preview ? 'Kan sorteras efter datum' : 'Sorterade efter datum';
+  $('output-path').textContent = `Målmapp: ${job.outputDir}`;
   $('report-path').hidden = !job.report;
-  $('report-path').textContent = job.report ? `Full CSV report: ${job.report}` : '';
-  $('date-sources').textContent = Object.entries(job.dateSources).map(([key, count]) => `${key === 'none' ? 'No usable date / unsupported' : key}: ${number(count)}`).join(' · ') + (job.skipped ? ` · Skipped links / special files: ${number(job.skipped)}` : '');
+  $('report-path').textContent = job.report ? `Fullständig CSV-rapport: ${job.report}` : '';
+  $('date-sources').textContent = Object.entries(job.dateSources).map(([key, count]) => `${dateSourceLabel(key)}: ${number(count)}`).join(' · ') + (job.skipped ? ` · Överhoppade länkar / specialfiler: ${number(job.skipped)}` : '');
   const note = $('completion-note');
   note.hidden = running;
   note.textContent = job.preview && (job.status === 'CANCELLED' || job.status === 'FAILED')
-    ? 'No files were changed. This preview is incomplete; only files processed before it stopped are shown.'
-    : job.preview && job.processed === 0 ? 'No files were changed. No files were found in the selected scope; try including subfolders or choosing a different folder.'
-    : job.preview ? 'No files were changed. Review the destinations below, then use the organize button above. Sorting reads the folder again, so changes made after the preview will be included.'
-    : job.status === 'CANCELLED' || job.status === 'FAILED' ? 'Completed files remain in the output folder. Files not yet processed remain in the source. Review the report before starting again.'
-    : job.errors ? 'Some files could not be processed. Review the errors and CSV report. Files that could not be read or written remain at their source.'
-    : job.processed === 0 ? 'No files were found in the selected scope. Try including subfolders or choosing a different folder.'
-    : 'Finished. Identical files already in the destination were skipped, with their source copies kept.';
+    ? 'Inga filer ändrades. Förhandsgranskningen är ofullständig och visar bara de filer som hann bearbetas.'
+    : job.preview && job.processed === 0 ? 'Inga filer ändrades. Inga filer hittades med de valda inställningarna. Prova att ta med undermappar eller välja en annan mapp.'
+    : job.preview ? 'Inga filer ändrades. Granska målmapparna nedan och använd sedan sorteringsknappen ovan. Vid sortering läses mappen igen, så ändringar efter förhandsgranskningen kommer med.'
+    : job.status === 'CANCELLED' || job.status === 'FAILED' ? 'Färdiga filer finns kvar i målmappen. Filer som ännu inte bearbetats ligger kvar i källmappen. Granska rapporten innan du börjar igen.'
+    : job.errors ? 'Vissa filer kunde inte bearbetas. Granska felen och CSV-rapporten. Filer som inte kunde läsas eller skrivas ligger kvar i källmappen.'
+    : job.processed === 0 ? 'Inga filer hittades med de valda inställningarna. Prova att ta med undermappar eller välja en annan mapp.'
+    : 'Klart. Identiska filer som redan finns i målmappen hoppades över och deras original behölls.';
   showMessages('warnings', job.warnings);
   showMessages('job-errors', job.errorMessages);
   $('group-list').replaceChildren();
@@ -180,7 +192,7 @@ function render(job) {
   $('file-list').replaceChildren();
   for (const sample of [...job.samples].reverse()) {
     const row = document.createElement('tr');
-    for (const value of [basename(sample.source), sample.destination || '—', sample.dateSource, sample.result]) {
+    for (const value of [basename(sample.source), sample.destination || '—', dateSourceLabel(sample.dateSource), resultLabel(sample.result)]) {
       const cell = document.createElement('td');
       cell.textContent = value;
       row.append(cell);
@@ -196,7 +208,7 @@ function render(job) {
 async function browse(target) {
   folderTarget = target;
   folderLocation = null;
-  $('folder-title').textContent = target === 'source' ? 'Choose your photo and video folder' : 'Choose an output folder';
+  $('folder-title').textContent = target === 'source' ? 'Välj mapp med bilder och videor' : 'Välj målmapp';
   $('folder-filter').value = '';
   $('folder-dialog').showModal();
   await loadFolders($(target).value.trim() || config.home);
@@ -206,7 +218,7 @@ async function loadFolders(path, filter = '') {
   const request = ++folderRequest;
   $('use-folder').disabled = true;
   $('folder-error').hidden = true;
-  $('folder-note').textContent = 'Reading folders…';
+  $('folder-note').textContent = 'Läser mappar…';
   $('folder-list').replaceChildren();
   try {
     const listing = await api(`/api/folders?path=${encodeURIComponent(path)}&filter=${encodeURIComponent(filter)}`);
@@ -216,7 +228,7 @@ async function loadFolders(path, filter = '') {
     $('folder-path').value = listing.path;
     $('folder-up').disabled = !listing.parent;
     $('use-folder').disabled = false;
-    $('folder-note').textContent = listing.truncated ? 'Showing the first 1,000 matching folders. Use the filter to narrow the list.' : listing.folders.length ? 'Open a subfolder, or select the current folder below.' : 'No matching subfolders. You can select this folder.';
+    $('folder-note').textContent = listing.truncated ? 'Visar de första 1 000 matchande mapparna. Använd filtret för att begränsa listan.' : listing.folders.length ? 'Öppna en undermapp eller välj den aktuella mappen nedan.' : 'Inga matchande undermappar. Du kan välja den här mappen.';
     for (const folder of listing.folders) {
       const button = document.createElement('button');
       button.type = 'button';
@@ -232,9 +244,9 @@ async function loadFolders(path, filter = '') {
     }
   } catch (error) {
     if (request !== folderRequest || !$('folder-dialog').open) return;
-    $('folder-error').textContent = `Cannot open this folder. ${error.message}`;
+    $('folder-error').textContent = `Mappen kunde inte öppnas. ${error.message}`;
     $('folder-error').hidden = false;
-    $('folder-note').textContent = 'Enter an existing folder path or choose Home / a drive above.';
+    $('folder-note').textContent = 'Ange sökvägen till en befintlig mapp eller välj Hem / en enhet ovan.';
   }
 }
 
@@ -246,6 +258,10 @@ function navigateFolder(path) {
 }
 
 $('sort-form').addEventListener('submit', event => { event.preventDefault(); start(true); });
+$('source').addEventListener('invalid', () => {
+  if ($('source').validity.valueMissing) $('source').setCustomValidity('Välj en mapp eller ange dess fullständiga sökväg.');
+});
+$('source').addEventListener('input', () => $('source').setCustomValidity(''));
 $('preview').addEventListener('click', () => start(true));
 $('organize').addEventListener('click', () => start(false));
 document.querySelectorAll('input[name=mode]').forEach(input => input.addEventListener('change', updateMode));
@@ -271,19 +287,20 @@ $('folder-filter').addEventListener('input', () => {
 $('use-folder').addEventListener('click', () => {
   if (!folderLocation) return;
   $(folderTarget).value = folderLocation;
+  $(folderTarget).setCustomValidity('');
   $('folder-dialog').close();
 });
 
 async function initialize() {
   try {
     config = await api('/api/config');
-    const readers = ['Built-in metadata reader'];
-    if (config.exifToolAvailable) readers.push('ExifTool detected');
-    if (config.ffprobeAvailable) readers.push('ffprobe detected');
+    const readers = ['Inbyggd metadataläsare'];
+    if (config.exifToolAvailable) readers.push('ExifTool hittades');
+    if (config.ffprobeAvailable) readers.push('ffprobe hittades');
     const missing = [!config.exifToolAvailable && 'ExifTool', !config.ffprobeAvailable && 'ffprobe'].filter(Boolean);
     $('metadata-status').textContent = readers.join(' + ') + '.'
-      + (missing.length ? ` Optional ${missing.join(' / ')} adds more metadata support (see README).` : '');
-    for (const shortcut of [{ label: 'Home', path: config.home }, ...config.roots.map(path => ({ label: path, path }))]) {
+      + (missing.length ? ` Valfria verktyg (${missing.join(' / ')}) ger stöd för fler metadataformat. Se README för installation.` : '');
+    for (const shortcut of [{ label: 'Hem', path: config.home }, ...config.roots.map(path => ({ label: path, path }))]) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'button secondary';
@@ -299,7 +316,7 @@ async function initialize() {
       if (state.job.status === 'RUNNING') schedulePoll();
     }
   } catch (error) {
-    showError(`Cannot connect to File Sorter. Start the Java application, then refresh this page. ${error.message}`);
+    showError(`Det gick inte att ansluta till File Sorter. Starta Java-programmet och ladda sedan om sidan. ${error.message}`);
   }
 }
 

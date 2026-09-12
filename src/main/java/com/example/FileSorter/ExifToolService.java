@@ -100,11 +100,11 @@ public class ExifToolService {
                     while ((line = output.readLine()) != null) {
                         if (line.equals("{ready" + id + "}")) return json.toString();
                         if (json.length() + line.length() > 1_048_576) {
-                            throw new IOException("Metadata response exceeds 1 MB");
+                            throw new IOException("Metadatasvaret överstiger 1 MB");
                         }
                         json.append(line).append('\n');
                     }
-                    throw new IOException("ExifTool closed its output unexpectedly");
+                    throw new IOException("ExifTool avslutade oväntat sin utmatning");
                 });
                 JsonNode document = mapper.readTree(response.get(timeoutSeconds, TimeUnit.SECONDS));
                 Map<String, String> tags = new LinkedHashMap<>();
@@ -115,8 +115,8 @@ public class ExifToolService {
             } catch (Exception exception) {
                 if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
                 failure = exception instanceof TimeoutException
-                        ? "ExifTool timed out; the remaining files use the built-in reader and filename dates."
-                        : "ExifTool became unavailable; the remaining files use the built-in reader and filename dates.";
+                        ? "ExifTool svarade inte i tid. Återstående filer använder övriga tillgängliga läsare och datum i filnamnen."
+                        : "ExifTool är inte längre tillgängligt. Återstående filer använder övriga tillgängliga läsare och datum i filnamnen.";
                 if (response != null) response.cancel(true);
                 close();
                 return Map.of();

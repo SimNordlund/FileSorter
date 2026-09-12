@@ -89,7 +89,7 @@ public class FfprobeService {
                 response = reader.submit(() -> {
                     try (InputStream output = running.getInputStream()) {
                         byte[] json = output.readNBytes(MAX_OUTPUT_BYTES + 1);
-                        if (json.length > MAX_OUTPUT_BYTES) throw new IOException("Video metadata response exceeds 1 MB");
+                        if (json.length > MAX_OUTPUT_BYTES) throw new IOException("Svaret med videometadata överstiger 1 MB");
                         return new Output(json, running.waitFor());
                     }
                 });
@@ -116,10 +116,10 @@ public class FfprobeService {
                 }
                 if (!hasVideo) return Map.of();
                 Map<String, String> tags = new LinkedHashMap<>();
-                appendTags(tags, "container", document.path("format").path("tags"));
+                appendTags(tags, "fil", document.path("format").path("tags"));
                 int streamIndex = 0;
                 for (JsonNode stream : document.path("streams")) {
-                    appendTags(tags, "video stream " + streamIndex++, stream.path("tags"));
+                    appendTags(tags, "videoström " + streamIndex++, stream.path("tags"));
                 }
                 return tags;
             } catch (CancellationException exception) {
@@ -129,8 +129,8 @@ public class FfprobeService {
                 throw new CancellationException();
             } catch (Exception exception) {
                 failure = exception instanceof TimeoutException
-                        ? "ffprobe timed out; the remaining videos use other metadata readers and filename dates."
-                        : "ffprobe became unavailable; the remaining videos use other metadata readers and filename dates.";
+                        ? "ffprobe svarade inte i tid. Återstående videor använder övriga metadataläsare och datum i filnamnen."
+                        : "ffprobe är inte längre tillgängligt. Återstående videor använder övriga metadataläsare och datum i filnamnen.";
                 return Map.of();
             } finally {
                 if (response != null) response.cancel(true);

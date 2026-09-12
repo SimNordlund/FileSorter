@@ -17,7 +17,7 @@ import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
 @Service
 public class PhotoOrganizerService {
-    public static final String UNHANDLED_FOLDER = "EjHanteradeBilder";
+    public static final String UNHANDLED_FOLDER = "EjHanterade";
     private final PhotoDateResolver dateResolver;
     private final ExifToolService exifTool;
     private final FfprobeService ffprobe;
@@ -36,20 +36,20 @@ public class PhotoOrganizerService {
 
     public synchronized Snapshot start(OrganizeRequest request) throws IOException {
         if (current != null && current.active()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "A job is already running. Wait for it or cancel it first.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "En körning pågår redan. Vänta tills den är klar eller avbryt den först.");
         }
         if (request.sourceDir() == null || request.sourceDir().isBlank()) {
-            throw new IllegalArgumentException("Select a source folder first.");
+            throw new IllegalArgumentException("Välj en källmapp först.");
         }
         Path source = Path.of(request.sourceDir().trim()).toRealPath();
         if (!Files.isDirectory(source) || !Files.isReadable(source)) {
-            throw new IllegalArgumentException("The source must be a readable folder.");
+            throw new IllegalArgumentException("Källan måste vara en mapp som går att läsa.");
         }
         Path output = request.outputDir() == null || request.outputDir().isBlank()
                 ? source.resolve("SortedPictures") : Path.of(request.outputDir().trim()).toAbsolutePath().normalize();
         output = resolveDestination(output);
         if (source.startsWith(output)) {
-            throw new IllegalArgumentException("Choose an output folder inside the source or in a separate location, not the source itself or one of its parents.");
+            throw new IllegalArgumentException("Välj en målmapp inuti källmappen eller på en annan plats. Målmappen får inte vara själva källmappen eller en av dess överordnade mappar.");
         }
         Job job = new Job(source, output, request);
         current = job;
@@ -73,15 +73,15 @@ public class PhotoOrganizerService {
 
     private Job requireJob(String id) {
         Job job = current;
-        if (job == null || !job.id.equals(id)) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found. Only the latest job is kept in memory.");
+        if (job == null || !job.id.equals(id)) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Körningen hittades inte. Endast den senaste körningen sparas i minnet.");
         return job;
     }
 
     private static Path resolveDestination(Path output) throws IOException {
         Path existing = output;
         while (existing != null && !Files.exists(existing, NOFOLLOW_LINKS)) existing = existing.getParent();
-        if (existing == null) throw new IllegalArgumentException("No existing parent folder for the output path.");
-        if (!Files.isDirectory(existing)) throw new IllegalArgumentException("The output path or one of its parents is not a folder.");
+        if (existing == null) throw new IllegalArgumentException("Det finns ingen överordnad mapp för den angivna målsökvägen.");
+        if (!Files.isDirectory(existing)) throw new IllegalArgumentException("Målsökvägen eller en av dess överordnade sökvägar är inte en mapp.");
         return existing.toRealPath().resolve(existing.relativize(output)).normalize();
     }
 
@@ -107,7 +107,7 @@ public class PhotoOrganizerService {
         } catch (CancellationException exception) {
             job.finish("CANCELLED");
         } catch (Exception exception) {
-            job.error("Job stopped: " + message(exception));
+            job.error("Körningen stoppades: " + message(exception));
             job.finish("FAILED");
         }
     }
@@ -122,8 +122,8 @@ public class PhotoOrganizerService {
                 if (directory.startsWith(job.output)) return FileVisitResult.SKIP_SUBTREE;
                 if (!directory.equals(job.source) && !job.request.includeSubfolders()) return FileVisitResult.SKIP_SUBTREE;
                 if (!directory.toRealPath().equals(directory.toAbsolutePath().normalize())) {
-                    job.skip(directory, "Folder link or junction skipped");
-                    row(report, directory, null, "skipped", null, "Folder link or junction skipped");
+                    job.skip(directory, "Mapplänk eller kopplingspunkt hoppades över");
+                    row(report, directory, null, "skipped", null, "Mapplänk eller kopplingspunkt hoppades över");
                     return FileVisitResult.SKIP_SUBTREE;
                 }
                 return FileVisitResult.CONTINUE;
@@ -133,8 +133,8 @@ public class PhotoOrganizerService {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
                 checkCancelled(job);
                 if (!attributes.isRegularFile() || attributes.isSymbolicLink()) {
-                    job.skip(file, "Link or special file skipped");
-                    row(report, file, null, "skipped", null, "Link or special file skipped");
+                    job.skip(file, "Länk eller specialfil hoppades över");
+                    row(report, file, null, "skipped", null, "Länk eller specialfil hoppades över");
                     return FileVisitResult.CONTINUE;
                 }
                 job.beginFile(file);
@@ -155,8 +155,8 @@ public class PhotoOrganizerService {
                     outcome = placement.duplicate() ? (job.request.isPreview() ? "duplicate (preview)" : "already present") : job.request.isPreview() ? "preview"
                             : job.request.effectiveMode() == OrganizeRequest.Mode.MOVE ? "moved" : "copied";
                     detail = placement.duplicate() ? (job.request.isPreview()
-                            ? "Identical destination exists or is planned; source would be kept. "
-                            : "Identical destination exists; source kept. ") + date.reason() : date.reason();
+                            ? "En identisk målfil finns redan eller är planerad. Originalet skulle behållas. "
+                            : "En identisk målfil finns redan. Originalet behölls. ") + date.reason() : date.reason();
                     job.placed(file, destination, group, date, outcome, placement.duplicate(), detail);
                 } catch (CancellationException exception) {
                     throw exception;
@@ -195,7 +195,7 @@ public class PhotoOrganizerService {
         private final Path destination;
 
         private CopyRetainedException(Path destination, IOException cause) {
-            super("Verified copy saved at " + destination + ", but source could not be removed: " + message(cause), cause);
+            super("En kontrollerad kopia sparades i " + destination + ", men originalet kunde inte tas bort: " + message(cause), cause);
             this.destination = destination;
         }
     }
@@ -239,12 +239,12 @@ public class PhotoOrganizerService {
                     copyFile(job, source, temporary);
                     verifySource(source, original);
                     if (Files.size(temporary) != original.size() || !sameContents(job, source, temporary)) {
-                        throw new IOException("Copy verification failed; source kept");
+                        throw new IOException("Kontrollen av kopian misslyckades. Originalet behölls");
                     }
                     try {
                         Files.setLastModifiedTime(temporary, original.lastModifiedTime());
                     } catch (IOException exception) {
-                        job.warning("Some filesystem timestamps could not be preserved; embedded metadata and file contents are unchanged.");
+                        job.warning("Vissa datum i filsystemet kunde inte bevaras. Filernas inbäddade metadata och innehåll är oförändrade.");
                     }
                 }
                 checkCancelled(job);
@@ -271,7 +271,7 @@ public class PhotoOrganizerService {
         } finally {
             if (temporary != null) {
                 try { Files.deleteIfExists(temporary); }
-                catch (IOException exception) { job.warning("Temporary copy could not be removed: " + temporary); }
+                catch (IOException exception) { job.warning("Den tillfälliga kopian kunde inte tas bort: " + temporary); }
             }
         }
     }
@@ -316,7 +316,7 @@ public class PhotoOrganizerService {
         while (existing != null && !Files.exists(existing, NOFOLLOW_LINKS)) existing = existing.getParent();
         if (existing == null || !Files.isDirectory(existing, NOFOLLOW_LINKS)
                 || !existing.toRealPath().equals(existing.toAbsolutePath().normalize())) {
-            throw new IOException("Output parent is inaccessible or contains a link or junction: " + directory);
+            throw new IOException("Målmappens överordnade mapp är otillgänglig eller innehåller en länk eller kopplingspunkt: " + directory);
         }
     }
 
@@ -325,7 +325,7 @@ public class PhotoOrganizerService {
         Files.createDirectories(directory);
         if (!Files.isDirectory(directory, NOFOLLOW_LINKS)
                 || !directory.toRealPath().equals(directory.toAbsolutePath().normalize())) {
-            throw new IOException("Output contains a link or junction: " + directory);
+            throw new IOException("Målmappen innehåller en länk eller kopplingspunkt: " + directory);
         }
     }
 
@@ -335,7 +335,7 @@ public class PhotoOrganizerService {
                 || !now.lastModifiedTime().equals(original.lastModifiedTime())
                 || !Objects.equals(now.fileKey(), original.fileKey())
                 || !file.toRealPath().equals(file.toAbsolutePath().normalize())) {
-            throw new IOException("Source changed or became a link while processing; source kept");
+            throw new IOException("Originalfilen ändrades eller ersattes av en länk under bearbetningen. Originalet behölls");
         }
     }
 
@@ -361,7 +361,7 @@ public class PhotoOrganizerService {
     }
 
     private static String message(Exception exception) {
-        return exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+        return SwedishMessages.error(exception);
     }
 
     @PreDestroy

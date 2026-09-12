@@ -24,18 +24,19 @@ public class LocalAccessFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Content-Language", "sv");
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Frame-Options", "DENY");
         response.setHeader("Referrer-Policy", "no-referrer");
         response.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
         if (!HOSTS.contains(request.getServerName()) || !validOrigin(request)) {
-            response.sendError(403, "Open File Sorter directly on localhost.");
+            response.sendError(403, "Öppna File Sorter direkt på localhost.");
             return;
         }
         String path = request.getServletPath();
         if (path.startsWith("/api/") && !path.equals("/api/config")
                 && !token.equals(request.getHeader("X-FileSorter-Token"))) {
-            response.sendError(403, "Refresh File Sorter to reconnect.");
+            response.sendError(403, "Ladda om File Sorter för att ansluta igen.");
             return;
         }
         chain.doFilter(request, response);

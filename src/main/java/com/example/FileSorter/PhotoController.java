@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.text.Collator;
 import java.util.*;
 
 @RestController
@@ -40,7 +41,7 @@ public class PhotoController {
                                  @RequestParam(defaultValue = "") String filter) throws IOException {
         Path directory = path == null || path.isBlank() ? Path.of(System.getProperty("user.home")) : Path.of(path);
         directory = directory.toRealPath();
-        if (!Files.isDirectory(directory)) throw new IllegalArgumentException("That path is not a folder.");
+        if (!Files.isDirectory(directory)) throw new IllegalArgumentException("Sökvägen är inte en mapp.");
         List<Folder> children = new ArrayList<>();
         boolean truncated = false;
         try (DirectoryStream<Path> entries = Files.newDirectoryStream(directory)) {
@@ -51,7 +52,7 @@ public class PhotoController {
                 children.add(new Folder(entry.getFileName().toString(), entry.toString()));
             }
         }
-        children.sort(Comparator.comparing(Folder::name, String.CASE_INSENSITIVE_ORDER));
+        children.sort(Comparator.comparing(Folder::name, Collator.getInstance(Locale.forLanguageTag("sv-SE"))));
         Path parent = directory.getParent();
         return new FolderListing(directory.toString(), parent == null ? null : parent.toString(), children, truncated);
     }
