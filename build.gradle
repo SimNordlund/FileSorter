@@ -20,14 +20,9 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.drewnoakes:metadata-extractor:2.19.0'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
 
-    dependencies {
-        implementation 'org.springframework.boot:spring-boot-starter-web'
-        implementation 'com.drewnoakes:metadata-extractor:2.19.0'
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    }
-
-    tasks.named('test') {
-        useJUnitPlatform()
-    }
+tasks.named('test') {
+    useJUnitPlatform()
 }
