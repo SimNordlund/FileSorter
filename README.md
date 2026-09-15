@@ -29,10 +29,11 @@ For example:
 Camera imports/
   SortedPictures/
     2026-09/
-      IMG_0421.HEIC
-      Screenshot 2026-09-05 142012.png
+      20260905.HEIC
+      20260905.png
+      202609051.png
     2026-08/
-      VID_20260818_093015.mp4
+      20260818.mp4
     EjHanterade/
       undated-picture.jpg
       undated-video.mp4
@@ -117,8 +118,8 @@ ffprobe is used only for recognized video extensions whose dates were not found 
 
 ## File handling and large collections
 
-- **Original filenames and contents are preserved.** No resizing, recompression or metadata writing. Different files with the same name get suffixes such as `IMG_001 (2).jpg`; existing files are not overwritten.
-- **Existing identical destinations are skipped** after comparing their full contents, including numbered collision destinations. The source is kept in both copy and move mode when this happens. This avoids duplicates on repeat runs with the same output and date settings. Files with different names are not deduplicated.
+- **Dated files are renamed to `YYYYMMDD`, keeping their original extension.** For example, `20260601.jpg`, then `202606011.jpg`, `202606012.jpg`, and so on when different files occupy the previous names. Numbering is based on occupied names in the target month folder for that extension; existing files are never overwritten. Preview uses the same naming rules. Files without a usable date keep their original names in `EjHanterade`, using suffixes such as `undated-picture (2).jpg` for collisions. No resizing, recompression or metadata writing occurs, and originals retain their names in copy mode.
+- **Existing identical destinations are skipped** after comparing their full contents, including numbered collision destinations. The source is kept in both copy and move mode when this happens. This avoids duplicates on repeat runs with the same output and date settings. Dated files with different original names can be deduplicated if they resolve to the same date and extension; this is not collection-wide duplicate detection.
 - **Copies are streamed and byte-verified.** Temporary output copies are completed and compared before final placement. Move mode deletes the source only after the verified destination exists and the source attributes are checked again. Original last-modified time is preserved where the filesystem permits; creation time, permissions and other filesystem attributes are not copied. Embedded metadata is unchanged.
 - **Only one job runs at a time.** There is no browser upload size limit. The folder tree is traversed incrementally, and the interface shows ongoing file counts instead of requiring a full pre-scan. Keep the source stable while a job runs. Available disk space, filesystem permissions and path limits still apply; copy mode needs enough space for a second collection, and move mode needs temporary space for the current file.
 - **Cancellation keeps completed work.** It interrupts streaming copy/verification between chunks. Metadata extraction may need to finish or reach its ExifTool timeout first. There is no automatic rollback. Empty source directories are left in place after moves.

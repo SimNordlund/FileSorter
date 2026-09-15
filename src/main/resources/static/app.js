@@ -158,7 +158,7 @@ function render(job) {
     CANCELLED: 'Körningen avbröts', FAILED: 'Körningen stoppades' };
   const heading = running ? (job.cancelRequested ? 'Avslutar den pågående åtgärden…' : job.preview ? 'Hittar rätt mapp för varje fil…' : `${verb} och sorterar…`) : titles[job.status] || 'Okänd status';
   if ($('results-heading').textContent !== heading) $('results-heading').textContent = heading;
-  $('job-description').textContent = `${job.recursive ? 'Undermappar ingår' : 'Endast filer direkt i vald mapp'} · Originalens filnamn bevaras · ${job.useFileDates ? 'Filsystemets datum används vid behov' : 'Endast datum i metadata och filnamn'}`;
+  $('job-description').textContent = `${job.recursive ? 'Undermappar ingår' : 'Endast filer direkt i vald mapp'} · Daterade filer får namn som ÅÅÅÅMMDD, med löpnummer vid namnkonflikt · ${job.useFileDates ? 'Filsystemets datum används vid behov' : 'Endast datum i metadata och filnamn'}`;
   $('current-file').textContent = job.currentFile ? `Läser / bearbetar: ${job.currentFile}` : '';
   for (const [id, key] of [['processed', 'processed'], ['dated', 'dated'], ['unhandled', 'unhandled'], ['already-present', 'alreadyPresent'], ['errors', 'errors']]) $(id).textContent = number(job[key]);
   $('dated-label').textContent = job.preview ? 'Kan sorteras efter datum' : 'Sorterade efter datum';

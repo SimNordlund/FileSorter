@@ -10,6 +10,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -150,7 +151,7 @@ public class PhotoOrganizerService {
                     Path folder = job.output.resolve(group);
                     validateOutputParent(folder);
                     if (!job.request.isPreview()) ensureDirectory(folder);
-                    Placement placement = place(job, file, attributes, folder);
+                    Placement placement = place(job, file, attributes, folder, date);
                     destination = placement.path();
                     outcome = placement.duplicate() ? (job.request.isPreview() ? "duplicate (preview)" : "already present") : job.request.isPreview() ? "preview"
                             : job.request.effectiveMode() == OrganizeRequest.Mode.MOVE ? "moved" : "copied";
@@ -200,14 +201,21 @@ public class PhotoOrganizerService {
         }
     }
 
-    private Placement place(Job job, Path source, BasicFileAttributes original, Path folder) throws IOException {
+    private Placement place(Job job, Path source, BasicFileAttributes original, Path folder,
+                            PhotoDateResolver.Result date) throws IOException {
         String filename = source.getFileName().toString();
+        boolean dated = date.handled();
+        if (dated) {
+            int dot = filename.lastIndexOf('.');
+            String extension = dot > 0 ? filename.substring(dot) : "";
+            filename = date.date().format(DateTimeFormatter.BASIC_ISO_DATE) + extension;
+        }
         int number = 1;
         Path temporary = null;
         try {
             while (true) {
                 checkCancelled(job);
-                Path destination = folder.resolve(number == 1 ? filename : numberedFilename(filename, number));
+                Path destination = folder.resolve(number == 1 ? filename : numberedFilename(filename, number, dated));
                 if (Files.exists(destination, NOFOLLOW_LINKS)) {
                     if (Files.isRegularFile(destination, NOFOLLOW_LINKS) && !Files.isSymbolicLink(destination)
                             && destination.toRealPath().equals(destination.toAbsolutePath().normalize())
@@ -303,11 +311,11 @@ public class PhotoOrganizerService {
         }
     }
 
-    private static String numberedFilename(String filename, int number) {
+    private static String numberedFilename(String filename, int number, boolean dated) {
         int dot = filename.lastIndexOf('.');
         String stem = dot > 0 ? filename.substring(0, dot) : filename;
         String extension = dot > 0 ? filename.substring(dot) : "";
-        String suffix = " (" + number + ")" + extension;
+        String suffix = (dated ? Integer.toString(number - 1) : " (" + number + ")") + extension;
         return stem.substring(0, Math.min(stem.length(), Math.max(1, 250 - suffix.length()))) + suffix;
     }
 
